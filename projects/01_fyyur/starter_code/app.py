@@ -29,6 +29,7 @@ migrate = Migrate(app, db)
 # Models.
 #----------------------------------------------------------------------------#
 
+# Importing the models from models.py
 class Venue(db.Model):
     __tablename__ = 'Venue'
 
@@ -45,7 +46,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean())
     seeking_description = db.Column(db.String())
 
-    shows = db.relationship('Shows', backref='venue', lazy=True)
+    shows = db.relationship('Shows', backref='venue')
 
     def __repr__(self):
       return f"Venue {self.id} {self.name} {self.city}"
@@ -67,7 +68,7 @@ class Artist(db.Model):
     seeking_venue = db.Column(db.Boolean())
     seeking_description = db.Column(db.String())
 
-    shows = db.relationship('Shows', backref='artist', lazy=True)
+    shows = db.relationship('Shows', backref='artist')
 
     def __repr__(self):
       return f"Artist {self.id} {self.name} {self.phone}"
