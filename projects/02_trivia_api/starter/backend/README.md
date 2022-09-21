@@ -82,24 +82,160 @@ One note before you delve into your tasks: for each endpoint, you are expected t
 This README is missing documentation of your endpoints. Below is an example for your endpoint to get all categories. Please use it as a reference for creating your documentation and resubmit your code. 
 
 Endpoints
-GET '/api/v1.0/categories'
-GET ...
-POST ...
-DELETE ...
+GET '/categories'
+GET '/questions'
+GET '/categories/<int:id>/questions'
+POST '/questions'
+POST '/quizzes'
+DELETE '/questions/<int:id>'
 
-GET '/api/v1.0/categories'
+
+
+GET '/categories'
 - Fetches a dictionary of categories in which the keys are the ids and the value is the corresponding string of the category
 - Request Arguments: None
 - Returns: An object with a single key, categories, that contains a object of id: category_string key:value pairs. 
-{'1' : "Science",
-'2' : "Art",
-'3' : "Geography",
-'4' : "History",
-'5' : "Entertainment",
-'6' : "Sports"}
+{
+    "categories": {
+        "1": "Science",
+        "2": "Art",
+        "3": "Geography",
+        "4": "History",
+        "5": "Entertainment",
+        "6": "Sports"
+    },
+    "success": true
+}
 
+
+GET '/questions'
+- Fetches a list of all questions in all categories
+- Request Arguments: None
+- Returns: A dictionary with keys (success, questions, totalQuestions, categories, currentCategory )
+{
+    "categories": {
+        "1": "Science",
+        "2": "Art",
+        "3": "Geography",
+        "4": "History",
+        "5": "Entertainment",
+        "6": "Sports"
+    },
+    "currentCategory": null,
+    "questions": [
+        {
+            "answer": "Apollo 13",
+            "category": 5,
+            "difficulty": 4,
+            "id": 2,
+            "question": "What movie earned Tom Hanks his third straight Oscar nomination, in 1996?"
+        },
+        ...
+    ],
+    "success": true,
+    "totalQuestions": 23
+}
+
+
+  
+DELETE '/questions/<int:id>'
+- Deletes a question and persists it in the database
+- Request Arguments: The question ID
+- Returns: A dictionary with keys (success, question_id, message)
+{
+    "message": "This question has been deleted",
+    "question_id": 2,
+    "success": true
+}
+
+
+
+POST '/questions'
+- Adds a question to the database and persists it or returns questions based on a provided search string
+- Request Arguments:
+
+if searching for a question
+{
+    "searchTerm": "team"
+}
+
+if adding a new question to the database
+{
+    "question":"Name an African country in West Africa you know",
+    "answer":"Nigeria",
+    "difficulty":"1",
+    "category":"3"
+}
+
+- Returns: 
+if search term is given, returns a dictionary with keys (success, questions, total_questions, current_category)
+{
+    "current_category": null,
+    "questions": [
+        {
+            "answer": "Brazil",
+            "category": 6,
+            "difficulty": 3,
+            "id": 10,
+            "question": "Which is the only team to play in every soccer World Cup tournament?"
+        }
+    ],
+    "success": true,
+    "total_questions": 1
+}
+
+if adding a new question to the database, returns a dictionary with key (success) indicating a question has been added to the database
+{
+    "success": true
+}
+
+    
+GET '/categories/<int:id>/questions'
+- Fetches questions from the database based on category
+- Request Argument: The question ID
+- Returns: A dictionary with keys (success, questions, totalQuestions, currentCategory)
+{
+    "currentCategory": 1,
+    "questions": [
+        {
+            "answer": "The Liver",
+            "category": 1,
+            "difficulty": 4,
+            "id": 20,
+            "question": "What is the heaviest organ in the human body?"
+        },
+        ...
+    ],
+    "success": true,
+    "totalQuestions": 3
+}
+
+
+
+POST '/quizzes'
+- Fetches a random question from the database
+- Request Arguments: A list of previous questions ID and the current category
+
+{
+    "previous_questions":[],
+    "quiz_category": {
+        "type":"Science", "id":"1"
+    }
+}
+
+- Returns: A dictionary with keys (success, question)
+
+{
+    "question": {
+        "answer": "Blood",
+        "category": 1,
+        "difficulty": 4,
+        "id": 22,
+        "question": "Hematology is a branch of medicine involving the study of what?"
+    },
+    "success": true
+}
 ```
-
 
 ## Testing
 To run the tests, run
