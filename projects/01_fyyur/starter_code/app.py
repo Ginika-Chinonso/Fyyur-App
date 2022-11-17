@@ -18,12 +18,7 @@ from flask_migrate import Migrate
 
 # TODO: connect to a local postgresql database
 
-#----------------------------------------------------------------------------#
-# Models.
-#----------------------------------------------------------------------------#
 
-# Importing the models from models.py
-from models import Venue, Artist, Shows
 
 
 #----------------------------------------------------------------------------#
@@ -34,6 +29,16 @@ app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
+
+#----------------------------------------------------------------------------#
+# Models.
+#----------------------------------------------------------------------------#
+
+# Importing the models from models.py
+# with app.app_context:
+from models import Venue, Artist, Shows
+
+
 migrate = Migrate(app, db)
 
 
@@ -68,29 +73,27 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  data=Venue.query.all()
-  [{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
-  return render_template('pages/venues.html', areas=data)
+  all_venues = Venue.query.order_by(Venue.city, Venue.state).all()
+  
+  cities = db.session.query(Venue.city, Venue.state).order_by(Venue.city).distinct()
+
+
+  res = []
+  for venue in cities:
+    res.append({
+      "city": venue.city,
+      "state": venue.state,
+      "venues": []
+    })
+  for venue in all_venues:
+    for x in res:
+      if venue.city == x['city']:
+        x['venues'].append({
+          "id": venue.id,
+          "name": venue.name,
+        })
+
+  return render_template('pages/venues.html', areas=res)
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -108,8 +111,17 @@ def search_venues():
 def show_venue(venue_id):
   # shows the venue page with the given venue_id
   # TODO: replace with real venue data from the venues table, using venue_id
-  data = Venue.query.get(venue_id)
-  return render_template('pages/show_venue.html', venue=data)
+  venue = Venue.query.get(venue_id)
+  data = vars(venue)
+  upcomingShows = Shows.query.join(Artist, Venue).add_columns(Artist.image_link.label('artist_image_link'), Artist.id.label('artist_id'), Shows.start_time.label('start_time')).filter(Shows.venue_id == venue_id, Shows.start_time > str(datetime.now())).all()
+  pastShows = Shows.query.join(Artist, Venue).add_columns(Artist.image_link.label('artist_image_link'), Artist.id.label('artist_id'), Shows.start_time.label('start_time')).filter(Shows.venue_id == venue_id, Shows.start_time < str(datetime.now())).all()
+
+  data['upcoming_shows'] = upcomingShows
+  data['upcoming_shows_count'] = len(upcomingShows)
+  data['past_shows'] = pastShows
+  data['past_shows_count'] = len(pastShows)
+
+  return render_template('pages/show_venue.html', venue= data)
 
 #  Create Venue
 #  ----------------------------------------------------------------
@@ -194,7 +206,17 @@ def show_artist(artist_id):
   # shows the artist page with the given artist_id
   # TODO: replace with real artist data from the artist table, using artist_id
   
-  data = Artist.query.get(artist_id)
+  artist = Artist.query.get(artist_id)
+  data = vars(artist)
+
+  pastShows = Shows.query.join(Artist, Venue).add_columns(Venue.image_link.label('venue_image_link'), Venue.id.label('venue_id'), Shows.start_time.label('start_time')).filter(Shows.artist_id == artist_id, Shows.start_time < str(datetime.now())).all()
+
+  upcomingShows = Shows.query.join(Artist).filter(Shows.artist_id == artist_id, Shows.start_time > str(datetime.now())).all()
+
+  data['upcoming_shows'] = upcomingShows
+  data['upcoming_shows_count'] = len(upcomingShows)
+  data['past_shows'] = pastShows
+  data['past_shows_count'] = len(pastShows)
   return render_template('pages/show_artist.html', artist=data)
 
 #  Update
@@ -214,15 +236,26 @@ def edit_artist_submission(artist_id):
   
   try:
     artist = Artist.query.get(artist_id)
-    artist.name = form.name.data,
-    artist.city= form.city.data, 
-    artist.state= form.state.data, 
-    artist.phone= form.phone.data, 
-    artist.genres= form.genres.data, 
-    artist.website= form.website_link.data,
-    artist.facebook_link= form.facebook_link.data, 
-    artist.image_link= form.image_link.data, 
-    artist.seeking_description= form.seeking_description.data
+    if form.name:
+      artist.name = form.name.data,
+    if form.city:
+      artist.city= form.city.data, 
+    if form.state:
+      artist.state= form.state.data, 
+    if form.phone:
+      artist.phone= form.phone.data, 
+    if form.genres:
+      artist.genres= form.genres.data, 
+    if form.website:
+      artist.website= form.website_link.data,
+    if form.facebook_link:
+      artist.facebook_link= form.facebook_link.data, 
+    if form.image_link:
+      artist.image_link= form.image_link.data,
+    if form.seeking_venue:
+      artist.seeking_venue= form.seeking_venue.data 
+    if form.seeking_description:
+      artist.seeking_description= form.seeking_description.data
 
     db.session.commit()
   except:
@@ -290,7 +323,7 @@ def create_artist_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
 
-  form = Artist(request.form)
+  form = ArtistForm(request.form)
 
   try:
     artist = Artist(
@@ -299,7 +332,7 @@ def create_artist_submission():
       state= form.state.data, 
       phone= form.phone.data, 
       genres= form.genres.data, 
-      website= form.website.data, 
+      website= form.website_link.data, 
       facebook_link= form.facebook_link.data, 
       image_link= form.image_link.data, 
       seeking_description= form.seeking_description.data
