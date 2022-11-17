@@ -14,3 +14,4 @@ DB_HOST = os.getenv('DB_HOST', 'localhost:5432')
 DB_NAME = os.getenv('DB_NAME', 'fyyur')
 # TODO IMPLEMENT DATABASE URL
 SQLALCHEMY_DATABASE_URI = 'postgresql://{}:{}@{}/{}'.format(DB_USERNAME, DB_PASSWORD, DB_HOST, DB_NAME)
+SQLALCHEMY_TRACK_MODIFICATIONS = False
