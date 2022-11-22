@@ -125,11 +125,25 @@ def show_venue(venue_id):
   venue = Venue.query.get(venue_id)
   data = vars(venue)
 
-  # Fetch Upcoming shows for the venue
-  upcomingShows = Shows.query.join(Artist, Venue).add_columns(Artist.image_link.label('artist_image_link'), Artist.id.label('artist_id'), Shows.start_time.label('start_time')).filter(Shows.venue_id == venue_id, Shows.start_time > str(datetime.now())).all()
+  # Fetch shows for the venue
+  shows = Shows.query.join(Artist, Shows.artist_id == Artist.id).filter(Shows.venue_id == venue_id).all()
 
-  # Fetch past shows for the venue
-  pastShows = Shows.query.join(Artist, Venue).add_columns(Artist.image_link.label('artist_image_link'), Artist.id.label('artist_id'), Shows.start_time.label('start_time')).filter(Shows.venue_id == venue_id, Shows.start_time < str(datetime.now())).all()
+
+
+  upcomingShows = []
+  pastShows = []
+
+  for show in shows:
+    res = {
+      'artist_image_link': show.artist.image_link,
+      'artist_id': show.artist_id,
+      'artist_name': show.artist.name,
+      'start_time': str(show.start_time)
+    }
+    if show.start_time < datetime.now():
+      pastShows.append(res)
+    else:
+      upcomingShows.append(res)
 
 
   # Add the neccesary data to the result object
@@ -155,7 +169,7 @@ def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
 
-  form = VenueForm(request.form, meta={'crsf': True})
+  form = VenueForm(request.form, meta={'crsf': False})
 
   # Form validation
   if form.validate():
@@ -234,9 +248,23 @@ def show_artist(artist_id):
   artist = Artist.query.get(artist_id)
   data = vars(artist)
 
-  pastShows = Shows.query.join(Artist, Venue).add_columns(Venue.image_link.label('venue_image_link'), Venue.id.label('venue_id'), Shows.start_time.label('start_time')).filter(Shows.artist_id == artist_id, Shows.start_time < str(datetime.now())).all()
+  shows = Shows.query.join(Venue, Shows.venue_id == Venue.id).filter(Shows.artist_id == artist_id).all()
 
-  upcomingShows = Shows.query.join(Artist, Venue).add_columns(Venue.image_link.label('venue_image_link'), Venue.id.label('venue_id'), Shows.start_time.label('start_time')).filter(Shows.artist_id == artist_id, Shows.start_time > str(datetime.now())).all()
+  pastShows = []
+  upcomingShows = []
+
+  for show in shows:
+    res = {
+      'venue_image_link': show.venue.image_link,
+      'venue_id': show.venue_id,
+      'venue_name': show.venue.name,
+      'start_time': str(show.start_time)
+    }
+
+    if show.start_time < datetime.now():
+      pastShows.append(res)
+    else:
+      upcomingShows.append(res)
 
   data['upcoming_shows'] = upcomingShows
   data['upcoming_shows_count'] = len(upcomingShows)
@@ -257,7 +285,7 @@ def edit_artist(artist_id):
 def edit_artist_submission(artist_id):
   # TODO: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
-  form = ArtistForm(request.form)
+  form = ArtistForm(request.form, meta={'crsf': False})
   
   try:
     artist = Artist.query.get(artist_id)
@@ -271,8 +299,8 @@ def edit_artist_submission(artist_id):
       artist.phone= form.phone.data, 
     if form.genres:
       artist.genres= form.genres.data, 
-    if form.website:
-      artist.website= form.website_link.data,
+    if form.website_link:
+      artist.website_link= form.website_link.data,
     if form.facebook_link:
       artist.facebook_link= form.facebook_link.data, 
     if form.image_link:
@@ -300,7 +328,7 @@ def edit_venue(venue_id):
 def edit_venue_submission(venue_id):
   # TODO: take values from the form submitted, and update existing
   # venue record with ID <venue_id> using the new attributes
-  form = VenueForm(request.form)
+  form = VenueForm(request.form, meta={'crsf': False})
 
   try:
     venue = Venue.query.get(venue_id)
@@ -320,8 +348,8 @@ def edit_venue_submission(venue_id):
       venue.genres= form.genres.data 
     if form.facebook_link:
       venue.facebook_link= form.facebook_link.data
-    if form.website:
-      venue.website= form.website.data
+    if form.website_link:
+      venue.website_link= form.website_link.data
     if form.seeking_talent:
       venue.seeking_talent = form.seeking_talent.data
     if form.seeking_description:
@@ -348,7 +376,7 @@ def create_artist_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
 
-  form = ArtistForm(request.form, meta={'crsf': True})
+  form = ArtistForm(request.form, meta={'crsf': False})
 
   if form.validate():
     try:
@@ -396,7 +424,7 @@ def shows():
       "artist_id": show[0].artist_id,
       "artist_name": show[1].name,
       "artist_image_link": show[1].image_link,
-      "start_time": show[0].start_time
+      "start_time": str(show[0].start_time)
       }
     data.append(item)
 
@@ -412,7 +440,7 @@ def create_shows():
 def create_show_submission():
   # called to create new shows in the db, upon submitting new show listing form
   # TODO: insert form data as a new Show record in the db, instead
-  form = ShowForm(request.form, meta={'crsf': True})
+  form = ShowForm(request.form, meta={'crsf': False})
 
   if form.validate():
     try:
